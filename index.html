@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kelvin's Receipt Scanner</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
+        #preview { width: 100%; max-width: 400px; border-radius: 10px; display: none; }
+        .btn { background: #007AFF; color: white; padding: 15px 25px; border-radius: 8px; border: none; font-size: 16px; }
+        #result { margin-top: 20px; text-align: left; background: white; padding: 15px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h2>Receipt Scanner</h2>
+    <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display:none;">
+    <button class="btn" onclick="document.getElementById('cameraInput').click()">Take Photo of Receipt</button>
+    
+    <br><br>
+    <img id="preview" alt="Receipt Preview">
+    
+    <div id="result">
+        <p>Results will appear here...</p>
+    </div>
+
+    <script>
+        const cameraInput = document.getElementById('cameraInput');
+        const preview = document.getElementById('preview');
+        const resultDiv = document.getElementById('result');
+
+        cameraInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.style.display = 'block';
+                processReceipt(file);
+            }
+        });
+
+        async function processReceipt(file) {
+            resultDiv.innerHTML = "Processing with Gemini...";
+            // I will help you write the API call logic here next
+        }
+    </script>
+</body>
+</html>
