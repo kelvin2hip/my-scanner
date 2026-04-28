@@ -52,33 +52,46 @@
             reader.readAsDataURL(file);
         });
 
-        async function callGemini(base64Image) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
-            
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: "Analyze this receipt. Extract the Merchant Name, Date, and Total Amount. Format it clearly." },
-                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                    ]
-                }]
-            };
+       async function callGemini(base64Image) {
+    // UPDATED FOR APRIL 2026: Using Gemini 3 Flash
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
+    
+    const payload = {
+        contents: [{
+            parts: [
+                { text: "Extract the Merchant Name, Date, and Total Amount from this receipt. Be concise." },
+                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+            ]
+        }]
+    };
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text;
-                resultDiv.innerText = text;
-            } catch (error) {
-                resultDiv.innerText = "Error: " + error.message;
-            } finally {
-                loader.style.display = 'none';
-            }
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            // This will now tell us if it's STILL trying to find 1.5 or if there is a new issue
+            resultDiv.innerText = "Error " + data.error.code + ": " + data.error.message;
+            return;
         }
+
+        if (data.candidates && data.candidates[0]) {
+            resultDiv.innerText = data.candidates[0].content.parts[0].text;
+        } else {
+            resultDiv.innerText = "Connection successful, but no text was returned.";
+        }
+
+    } catch (error) {
+        resultDiv.innerText = "Connection Failed: " + error.message;
+    } finally {
+        loader.style.display = 'none';
+    }
+}
     </script>
 </body>
 </html>
