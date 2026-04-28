@@ -44,9 +44,16 @@
             resultDiv.innerText = "Reading receipt...";
 
             // Convert image to Base64 for Gemini
-            const reader = new FileReader();
+          const reader = new FileReader();
             reader.onloadend = async () => {
-                const base64Data = reader.result.split(',')[1];
+                // This line is the fix: it strips out the "data:image/jpeg;base64," prefix
+                const base64Data = reader.result.split(',')[1]; 
+                
+                if (!base64Data) {
+                    resultDiv.innerText = "Error: Image data is empty.";
+                    return;
+                }
+                
                 await callGemini(base64Data);
             };
             reader.readAsDataURL(file);
