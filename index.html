@@ -70,11 +70,24 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
                 const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text;
-                resultDiv.innerText = text;
+
+                // If Google sends an error, this will show you what it is
+                if (data.error) {
+                    resultDiv.innerText = "Google Error: " + data.error.message;
+                    return;
+                }
+
+                if (data.candidates && data.candidates[0]) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    resultDiv.innerText = text;
+                } else {
+                    resultDiv.innerText = "Gemini reached, but no data returned. Check the console.";
+                    console.log(data);
+                }
             } catch (error) {
-                resultDiv.innerText = "Error: " + error.message;
+                resultDiv.innerText = "Network Error: " + error.message;
             } finally {
                 loader.style.display = 'none';
             }
