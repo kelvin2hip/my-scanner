@@ -52,33 +52,42 @@
             reader.readAsDataURL(file);
         });
 
-        async function callGemini(base64Image) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-            
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: "Analyze this receipt. Extract the Merchant Name, Date, and Total Amount. Format it clearly." },
-                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                    ]
-                }]
-            };
+async function callGemini(base64Image) {
+    // Ensure there are no extra spaces in your API Key string
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    
+    const payload = {
+        contents: [{
+            parts: [
+                { text: "Extract Merchant, Date, and Total from this receipt." },
+                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+            ]
+        }]
+    };
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await response.json();
-                const text = data.candidates[0].content.parts[0].text;
-                resultDiv.innerText = text;
-            } catch (error) {
-                resultDiv.innerText = "Error: " + error.message;
-            } finally {
-                loader.style.display = 'none';
-            }
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            // Simplified headers for Safari
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            resultDiv.innerText = "Server Error: " + response.status + "\n" + errorText;
+            return;
         }
+
+        const data = await response.json();
+        resultDiv.innerText = data.candidates[0].content.parts[0].text;
+
+    } catch (error) {
+        // This is where "Load failed" happens
+        resultDiv.innerText = "Connection Failed. Try using Cellular data instead of Wi-Fi, or check if your API key is correct.";
+    } finally {
+        loader.style.display = 'none';
+    }
+}
     </script>
 </body>
 </html>
