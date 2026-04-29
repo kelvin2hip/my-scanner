@@ -9,7 +9,6 @@
     <style>
         body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
-        #cameraInput { position: absolute; top: 0; left: 0; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
         #preview { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
         .btn { background: #007AFF; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
         .btn-save { background: #34A853; margin-top: 20px; display: none; }
@@ -20,7 +19,7 @@
 <body>
     <div class="card">
         <h2>Receipt Scanner</h2>
-        <input type="file" accept="image/*" capture="camera" id="cameraInput">
+        <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display: none;">
         <button class="btn" onclick="document.getElementById('cameraInput').click()">Scan Receipt</button>
         <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
