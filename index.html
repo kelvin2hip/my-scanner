@@ -51,23 +51,44 @@
         // --- GOOGLE AUTH SETUP ---
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
-            callback: (tokenResponse) => {
-                accessToken = tokenResponse.access_token;
-                proceedWithSave();
-            },
-        });
+            cameraInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        // --- SCANNING LOGIC ---
-        reader.onloadend = async () => {
+            // SHOW LOADER IMMEDIATELY
+            loader.style.display = 'block';
+            resultDiv.innerText = "Processing image...";
+
+            const reader = new FileReader();
+            reader.onloadend = async () => {
                 const img = new Image();
                 img.src = reader.result;
                 img.onload = async () => {
-                    // Create a canvas to resize the image
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1200; // Shrink to a reasonable size
+                    const MAX_WIDTH = 1024; // Resizing for speed
                     let width = img.width;
                     let height = img.height;
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    currentImageBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                    preview.src = canvas.toDataURL('image/jpeg');
+                    preview.style.display = 'block';
+
+                    await callGemini(currentImageBase64);
+                    
+                    // CRITICAL: Clear the input so the NEXT scan also triggers 'change'
+                    cameraInput.value = ""; 
+                };
+            };
+            reader.readAsDataURL(file);
+        });
 
                     if (width > MAX_WIDTH) {
                         height *= MAX_WIDTH / width;
