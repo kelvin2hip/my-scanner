@@ -19,8 +19,8 @@
 <body>
     <div class="card">
         <h2>Receipt Scanner</h2>
-        <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display: none;">
-        <button class="btn" onclick="document.getElementById('cameraInput').click()">Scan Receipt</button>
+        <input type="file" accept="image/*" capture="camera" id="cameraInput" style="opacity: 0; position: absolute; z-index: -1;">
+        <button class="btn" onclick="console.log('Button clicked'); document.getElementById('cameraInput').click();">Scan Receipt</button>
         <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
         <div id="result">Results will appear here.</div>
