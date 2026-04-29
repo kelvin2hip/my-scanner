@@ -6,10 +6,10 @@
     <title>Kelvin's Scanner</title>
     <style>
         body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 15px; shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         #preview { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
         .btn { background: #007AFF; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; }
-        #result { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #e9e9eb; padding: 15px; border-radius: 10px; font-size: 14px; }
+        #result { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #e9e9eb; padding: 15px; border-radius: 10px; font-size: 14px; min-height: 50px; }
         .loader { color: #666; font-style: italic; margin-top: 10px; display: none; }
     </style>
 </head>
@@ -19,25 +19,22 @@
         <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display:none;">
         <button class="btn" onclick="document.getElementById('cameraInput').click()">Scan Receipt</button>
         
-        <div id="loader" class="loader">Gemini is analyzing...</div>
+        <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
         <div id="result">Results will appear here.</div>
     </div>
 
-   <script>
-        // We now check the iPhone's memory for the key instead of hardcoding it
+    <script>
         let API_KEY = localStorage.getItem('gemini_api_key');
 
-        // If no key is found, we ask you for it
         if (!API_KEY) {
-            API_KEY = prompt("Please enter your Gemini API Key (it will be saved locally on your phone):");
+            API_KEY = prompt("Please enter your Gemini API Key:");
             if (API_KEY) {
                 localStorage.setItem('gemini_api_key', API_KEY);
             }
         }
 
         const cameraInput = document.getElementById('cameraInput');
-        // ... (rest of your existing variables and logic)
         const preview = document.getElementById('preview');
         const resultDiv = document.getElementById('result');
         const loader = document.getElementById('loader');
@@ -46,13 +43,11 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            // Show preview and loader
             preview.src = URL.createObjectURL(file);
             preview.style.display = 'block';
             loader.style.display = 'block';
             resultDiv.innerText = "Reading receipt...";
 
-            // Convert image to Base64 for Gemini
             const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64Data = reader.result.split(',')[1];
@@ -61,50 +56,44 @@
             reader.readAsDataURL(file);
         });
 
-       async function callGemini(base64Image) {
-    // UPDATED FOR APRIL 2026: Using Gemini 3 Flash
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
-    
-    const payload = {
-        contents: [{
-            parts: [
-                { text: "Extract the Merchant Name, Date, and Total Amount from this receipt. Be concise." },
-                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-            ]
-        }]
-    };
+        async function callGemini(base64Image) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
+            
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: "Extract the Merchant Name, Date, and Total Amount from this receipt. Format as a clear list." },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }]
+            };
 
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (data.error) {
-            // This will now tell us if it's STILL trying to find 1.5 or if there is a new issue
-            resultDiv.innerText = "Error " + data.error.code + ": " + data.error.message;
-            return;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerText = "Error: " + data.error.message;
+                } else if (data.candidates && data.candidates[0]) {
+                    resultDiv.innerText = data.candidates[0].content.parts[0].text;
+                } else {
+                    resultDiv.innerText = "No data returned.";
+                }
+            } catch (error) {
+                resultDiv.innerText = "Connection Failed: " + error.message;
+            } finally {
+                loader.style.display = 'none';
+            }
         }
-
-        if (data.candidates && data.candidates[0]) {
-            resultDiv.innerText = data.candidates[0].content.parts[0].text;
-        } else {
-            resultDiv.innerText = "Connection successful, but no text was returned.";
-        }
-
-    } catch (error) {
-        resultDiv.innerText = "Connection Failed: " + error.message;
-    } finally {
-        loader.style.display = 'none';
-    }
-}
     </script>
+    
     <button onclick="localStorage.removeItem('gemini_api_key'); location.reload();" 
-        style="margin-top: 50px; background: none; border: none; color: #888; font-size: 12px; text-decoration: underline;">
-    Reset API Key
-</button>
+            style="margin-top: 50px; background: none; border: none; color: #888; font-size: 11px; text-decoration: underline; width: 100%;">
+        Reset API Key
+    </button>
 </body>
 </html>
