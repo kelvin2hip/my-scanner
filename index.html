@@ -59,13 +59,33 @@
         });
 
         // --- SCANNING LOGIC ---
-        cameraInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        reader.onloadend = async () => {
+                const img = new Image();
+                img.src = reader.result;
+                img.onload = async () => {
+                    // Create a canvas to resize the image
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1200; // Shrink to a reasonable size
+                    let width = img.width;
+                    let height = img.height;
 
-            preview.src = URL.createObjectURL(file);
-            preview.style.display = 'block';
-            loader.style.display = 'block';
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Convert to a smaller JPEG string
+                    const resizedBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                    currentImageBase64 = resizedBase64;
+                    
+                    await callGemini(currentImageBase64);
+                };
+            };
             saveBtn.style.display = 'none';
             resultDiv.innerText = "Reading receipt...";
 
