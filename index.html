@@ -10,24 +10,23 @@
         body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; }
         #preview { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
-        /* Added cursor:pointer to help Safari recognize the button */
         .btn { background: #007AFF; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; -webkit-appearance: none; }
         .btn-save { background: #34A853; margin-top: 20px; display: none; }
         #result { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #e9e9eb; padding: 15px; border-radius: 10px; font-size: 14px; min-height: 50px; }
-        .loader { color: #666; font-style: italic; margin-top: 10px; display: none; }
-        /* The invisible but clickable input area */
-        #cameraInput { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10; display: block !important; }
+        #statusBox { color: #007AFF; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
+        #cameraInput { position: absolute; top: 0; left: 0; width: 100%; height: 60px; opacity: 0; cursor: pointer; z-index: 10; }
     </style>
 </head>
 <body onclick="void(0);">
     <div class="card">
         <h2>Receipt Scanner</h2>
+        <div id="statusBox">Ready to scan...</div>
+        
         <div style="position: relative; height: 60px; margin-top: 10px;">
             <button class="btn" style="position: absolute; top: 0; left: 0; z-index: 5;">Scan Receipt</button>
             <input type="file" accept="image/*" capture="camera" id="cameraInput">
         </div>
         
-        <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
         <div id="result">Results will appear here.</div>
         <button id="saveBtn" class="btn btn-save" onclick="startSave()">Save to Google Drive</button>
@@ -39,40 +38,38 @@
         let accessToken = null;
         let currentImageBase64 = "";
 
+        const statusBox = document.getElementById('statusBox');
+        const cameraInput = document.getElementById('cameraInput');
+        const resultDiv = document.getElementById('result');
+        const preview = document.getElementById('preview');
+        const saveBtn = document.getElementById('saveBtn');
+
         if (!API_KEY) {
             API_KEY = prompt("Please enter your Gemini API Key:");
             if (API_KEY) localStorage.setItem('gemini_api_key', API_KEY);
         }
 
-        const cameraInput = document.getElementById('cameraInput');
-        const resultDiv = document.getElementById('result');
-        const loader = document.getElementById('loader');
-        const preview = document.getElementById('preview');
-        const saveBtn = document.getElementById('saveBtn');
-
         const tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/drive.file',
-            callback: (tokenResponse) => {
-                accessToken = tokenResponse.access_token;
-                proceedWithSave();
-            },
+            callback: (resp) => { accessToken = resp.access_token; proceedWithSave(); },
         });
 
         cameraInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            loader.style.display = 'block';
-            resultDiv.innerText = "File received! Starting analysis...";
+            statusBox.innerText = "Step 1: Reading file...";
+            resultDiv.innerText = "Processing...";
 
             const reader = new FileReader();
             reader.onload = function(event) {
+                statusBox.innerText = "Step 2: Shrinking image for speed...";
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1024;
+                    const MAX_WIDTH = 1000;
                     let width = img.width;
                     let height = img.height;
                     if (width > MAX_WIDTH) {
@@ -84,9 +81,11 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    currentImageBase64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+                    currentImageBase64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
                     preview.src = canvas.toDataURL('image/jpeg');
                     preview.style.display = 'block';
+
+                    statusBox.innerText = "Step 3: Sending to Gemini AI...";
                     callGemini(currentImageBase64);
                 };
             };
@@ -94,30 +93,45 @@
         });
 
         async function callGemini(base64Image) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
-            const payload = { contents: [{ parts: [{ text: "Extract Merchant, Date, and Total." }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }] };
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            const payload = {
+                contents: [{ parts: [{ text: "Extract Merchant, Date, and Total. Format clearly." }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }]
+            };
+
             try {
                 const response = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
                 const data = await response.json();
-                resultDiv.innerText = data.candidates[0].content.parts[0].text;
-                saveBtn.style.display = 'block';
-            } catch (error) { alert("Error: " + error.message); } finally { loader.style.display = 'none'; }
+                
+                if (data.candidates && data.candidates[0]) {
+                    statusBox.innerText = "Analysis Complete!";
+                    resultDiv.innerText = data.candidates[0].content.parts[0].text;
+                    saveBtn.style.display = 'block';
+                } else {
+                    statusBox.innerText = "Error: No data from AI.";
+                    alert("AI Error: " + JSON.stringify(data));
+                }
+            } catch (err) {
+                statusBox.innerText = "Network Error.";
+                alert("Connection failed: " + err.message);
+            }
         }
 
-        function startSave() { if (!accessToken) { tokenClient.requestAccessToken(); } else { proceedWithSave(); } }
+        function startSave() { if (!accessToken) tokenClient.requestAccessToken(); else proceedWithSave(); }
 
         async function proceedWithSave() {
-            resultDiv.innerText = "Saving...";
+            statusBox.innerText = "Uploading to Drive...";
             try {
                 const metadata = { name: `Receipt_${Date.now()}.jpg`, mimeType: 'image/jpeg' };
                 const blob = b64toBlob(currentImageBase64, 'image/jpeg');
                 const form = new FormData();
                 form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
                 form.append('file', blob);
+
                 await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                     method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}` }, body: form
                 });
-                resultDiv.innerHTML = "✅ Saved!";
+                statusBox.innerText = "Success!";
+                resultDiv.innerHTML = "✅ Saved to Drive!";
             } catch (e) { alert(e.message); }
         }
 
