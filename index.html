@@ -20,11 +20,13 @@
     <div class="card">
         <h2>Receipt Scanner</h2>
         <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display: block; width: 1px; height: 1px; opacity: 0;">
-<button class="btn" id="scanBtn">Scan Receipt</button>
-        <button class="btn" onclick="console.log('Button clicked'); document.getElementById('cameraInput').click();">Scan Receipt</button>
+        
+        <button class="btn" id="scanBtn">Scan Receipt</button>
+        
         <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
         <div id="result">Results will appear here.</div>
+        
         <button id="saveBtn" class="btn btn-save" onclick="startSave()">Save to Google Drive</button>
     </div>
 
@@ -41,6 +43,7 @@
         }
 
         const cameraInput = document.getElementById('cameraInput');
+        const scanBtn = document.getElementById('scanBtn');
         const resultDiv = document.getElementById('result');
         const loader = document.getElementById('loader');
         const preview = document.getElementById('preview');
@@ -56,44 +59,34 @@
             },
         });
 
-        const scanBtn = document.getElementById('scanBtn');
-
-        // Trigger camera when button is clicked
+        // 1. Button Trigger
         scanBtn.addEventListener('click', () => {
             cameraInput.click();
         });
 
-        // The "Brain" - fires when you click "Use Photo"
+        // 2. The Capture Logic
         cameraInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
-            
-            if (!file) {
-                alert("No file detected. Did you cancel?");
-                return;
-            }
+            if (!file) return;
 
-            // DEBUG ALERT: If you see this, the camera is connected!
-            console.log("File detected:", file.name);
-            
             loader.style.display = 'block';
-            resultDiv.innerText = "File received! Starting analysis...";
             saveBtn.style.display = 'none';
+            resultDiv.innerText = "File received! Starting analysis...";
 
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = function() {
+                    // RESIZE for iPhone stability
                     const canvas = document.createElement('canvas');
                     const MAX_WIDTH = 1000; 
                     let width = img.width;
                     let height = img.height;
-                    
                     if (width > MAX_WIDTH) {
                         height *= MAX_WIDTH / width;
                         width = MAX_WIDTH;
                     }
-                    
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
@@ -111,10 +104,11 @@
             reader.readAsDataURL(file);
         });
 
+        // 3. The AI Logic
         async function callGemini(base64Image) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${API_KEY}`;
             const payload = {
-                contents: [{ parts: [{ text: "Extract Merchant, Date, and Total." }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }]
+                contents: [{ parts: [{ text: "Extract Merchant Name, Date, and Total Amount. List clearly." }, { inline_data: { mime_type: "image/jpeg", data: base64Image } }] }]
             };
 
             try {
@@ -131,6 +125,7 @@
             } finally { loader.style.display = 'none'; }
         }
 
+        // 4. The Drive Logic
         function startSave() {
             if (!accessToken) {
                 tokenClient.requestAccessToken();
