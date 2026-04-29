@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kelvin's Scanner</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://apis.google.com/js/api.js"></script>
-    <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        #preview { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
-        .btn { background: #007AFF; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
-        .btn-save { background: #34A853; margin-top: 20px; display: none; }
-        #result { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #e9e9eb; padding: 15px; border-radius: 10px; font-size: 14px; min-height: 50px; }
-        .loader { color: #666; font-style: italic; margin-top: 10px; display: none; }
+  .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+    /* This makes the input invisible but physically present for Safari */
+    #cameraInput { 
+        position: absolute; 
+        top: 0; left: 0; 
+        opacity: 0; 
+        width: 1px; height: 1px; 
+        pointer-events: none; 
+    }
     </style>
 </head>
 <body>
