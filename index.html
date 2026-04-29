@@ -19,7 +19,8 @@
 <body>
     <div class="card">
         <h2>Receipt Scanner</h2>
-        <input type="file" accept="image/*" capture="camera" id="cameraInput" style="opacity: 0; position: absolute; z-index: -1;">
+        <input type="file" accept="image/*" capture="camera" id="cameraInput" style="display: block; width: 1px; height: 1px; opacity: 0;">
+<button class="btn" id="scanBtn">Scan Receipt</button>
         <button class="btn" onclick="console.log('Button clicked'); document.getElementById('cameraInput').click();">Scan Receipt</button>
         <div id="loader" class="loader">Gemini 3 is analyzing...</div>
         <img id="preview">
@@ -55,13 +56,28 @@
             },
         });
 
+        const scanBtn = document.getElementById('scanBtn');
+
+        // Trigger camera when button is clicked
+        scanBtn.addEventListener('click', () => {
+            cameraInput.click();
+        });
+
+        // The "Brain" - fires when you click "Use Photo"
         cameraInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (!file) return;
+            
+            if (!file) {
+                alert("No file detected. Did you cancel?");
+                return;
+            }
 
+            // DEBUG ALERT: If you see this, the camera is connected!
+            console.log("File detected:", file.name);
+            
             loader.style.display = 'block';
+            resultDiv.innerText = "File received! Starting analysis...";
             saveBtn.style.display = 'none';
-            resultDiv.innerText = "Processing image...";
 
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -72,10 +88,12 @@
                     const MAX_WIDTH = 1000; 
                     let width = img.width;
                     let height = img.height;
+                    
                     if (width > MAX_WIDTH) {
                         height *= MAX_WIDTH / width;
                         width = MAX_WIDTH;
                     }
+                    
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
@@ -85,8 +103,9 @@
                     preview.src = canvas.toDataURL('image/jpeg');
                     preview.style.display = 'block';
 
+                    resultDiv.innerText = "Gemini 3 is analyzing...";
                     callGemini(currentImageBase64);
-                    cameraInput.value = "";
+                    cameraInput.value = ""; 
                 };
             };
             reader.readAsDataURL(file);
