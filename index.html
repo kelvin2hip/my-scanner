@@ -24,11 +24,20 @@
         <div id="result">Results will appear here.</div>
     </div>
 
-    <script>
-        // PASTE YOUR API KEY BETWEEN THE QUOTES BELOW
-        const API_KEY = "AIzaSyAVmG0JE1W0xSLe33Xc1uc7wIhAA0NZzPE"; 
+   <script>
+        // We now check the iPhone's memory for the key instead of hardcoding it
+        let API_KEY = localStorage.getItem('gemini_api_key');
+
+        // If no key is found, we ask you for it
+        if (!API_KEY) {
+            API_KEY = prompt("Please enter your Gemini API Key (it will be saved locally on your phone):");
+            if (API_KEY) {
+                localStorage.setItem('gemini_api_key', API_KEY);
+            }
+        }
 
         const cameraInput = document.getElementById('cameraInput');
+        // ... (rest of your existing variables and logic)
         const preview = document.getElementById('preview');
         const resultDiv = document.getElementById('result');
         const loader = document.getElementById('loader');
