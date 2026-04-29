@@ -8,28 +8,26 @@
     <script src="https://apis.google.com/js/api.js"></script>
     <style>
         body { font-family: -apple-system, sans-serif; text-align: center; padding: 20px; background: #f0f2f5; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: relative; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         #preview { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
-        .btn { background: #007AFF; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; -webkit-appearance: none; }
-        .btn-save { background: #34A853; margin-top: 20px; display: none; }
+        .btn { background: #34A853; color: white; padding: 15px 30px; border-radius: 10px; border: none; font-size: 18px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; display: none; }
         #result { margin-top: 20px; text-align: left; white-space: pre-wrap; background: #e9e9eb; padding: 15px; border-radius: 10px; font-size: 14px; min-height: 50px; }
-        #statusBox { color: #007AFF; font-weight: bold; margin-bottom: 10px; font-size: 14px; }
-        #cameraInput { position: absolute; top: 0; left: 0; width: 100%; height: 60px; opacity: 0; cursor: pointer; z-index: 10; }
+        #statusBox { color: #007AFF; font-weight: bold; margin-bottom: 20px; font-size: 16px; }
+        /* Standard visible input for testing */
+        #cameraInput { font-size: 16px; margin: 20px 0; }
     </style>
 </head>
-<body onclick="void(0);">
+<body>
     <div class="card">
         <h2>Receipt Scanner</h2>
         <div id="statusBox">Ready to scan...</div>
         
-        <div style="position: relative; height: 60px; margin-top: 10px;">
-            <button class="btn" style="position: absolute; top: 0; left: 0; z-index: 5;">Scan Receipt</button>
-            <input type="file" accept="image/*" capture="camera" id="cameraInput">
-        </div>
+        <p>Tap below to take photo:</p>
+        <input type="file" accept="image/*" capture="camera" id="cameraInput">
         
         <img id="preview">
-        <div id="result">Results will appear here.</div>
-        <button id="saveBtn" class="btn btn-save" onclick="startSave()">Save to Google Drive</button>
+        <div id="result">Analysis will appear here after you take the photo.</div>
+        <button id="saveBtn" class="btn" onclick="startSave()">Save to Google Drive</button>
     </div>
 
     <script>
@@ -57,14 +55,16 @@
 
         cameraInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
-            if (!file) return;
+            if (!file) {
+                statusBox.innerText = "No file selected.";
+                return;
+            }
 
-            statusBox.innerText = "Step 1: Reading file...";
-            resultDiv.innerText = "Processing...";
-
+            statusBox.innerText = "Step 1: File detected! Reading...";
+            
             const reader = new FileReader();
             reader.onload = function(event) {
-                statusBox.innerText = "Step 2: Shrinking image for speed...";
+                statusBox.innerText = "Step 2: Processing image size...";
                 const img = new Image();
                 img.src = event.target.result;
                 img.onload = function() {
@@ -107,8 +107,8 @@
                     resultDiv.innerText = data.candidates[0].content.parts[0].text;
                     saveBtn.style.display = 'block';
                 } else {
-                    statusBox.innerText = "Error: No data from AI.";
-                    alert("AI Error: " + JSON.stringify(data));
+                    statusBox.innerText = "Error: AI returned no results.";
+                    alert("Debug: " + JSON.stringify(data));
                 }
             } catch (err) {
                 statusBox.innerText = "Network Error.";
@@ -132,7 +132,7 @@
                 });
                 statusBox.innerText = "Success!";
                 resultDiv.innerHTML = "✅ Saved to Drive!";
-            } catch (e) { alert(e.message); }
+            } catch (e) { alert("Drive Error: " + e.message); }
         }
 
         function b64toBlob(b64, type) {
